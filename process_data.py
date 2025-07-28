@@ -1,9 +1,9 @@
 import os
 import csv
 
-speakers_txt = 'LibriSpeech/SPEAKERS.TXT'
-root_dir = 'LibriSpeech/train-clean-100'
-output_csv = 'LibriSpeech/speaker_audio_samples.csv'
+speakers_txt = 'data/SPEAKERS.TXT'
+root_dir = 'data/train-clean-100'
+output_csv = 'data/train_dataset.csv'
 
 # 1. Đọc speaker_id và sex từ SPEAKERS.TXT
 speaker_info = {}
@@ -35,10 +35,11 @@ for speaker_id in speaker_info.keys():
 
     # Sắp xếp và chọn 3 file đầu tiên (nếu có)
     flac_files.sort()
-    selected_files = flac_files[:3]
+    selected_files = flac_files[:8]
 
     for audio_path in selected_files:
-        samples.append([speaker_id, speaker_info[speaker_id], audio_path.replace("\\", "/")])
+        relative_path = audio_path.replace('data/', '', 1)
+        samples.append([speaker_id, speaker_info[speaker_id], relative_path])
 
 # 3. Ghi vào CSV
 with open(output_csv, 'w', newline='', encoding='utf-8') as f:
