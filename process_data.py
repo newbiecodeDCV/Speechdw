@@ -3,7 +3,7 @@ import csv
 
 speakers_txt = 'data/SPEAKERS.TXT'
 root_dir = 'data/train-clean-100'
-output_csv = 'data/train_dataset.csv'
+output_csv = '/data/hiennt/data/train_dataset.csv'
 
 # 1. Đọc speaker_id và sex từ SPEAKERS.TXT
 speaker_info = {}
