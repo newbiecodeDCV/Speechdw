@@ -16,7 +16,7 @@ model = AudioClassifier(num_classes=2).to(device)
 
 # 3. Loss và Optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.001,weight_decay=1e-5)
 
 # 4. Dataloader (giả sử bạn đã có train_loader và val_loader)
 # Ví dụ: train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
@@ -26,12 +26,10 @@ mel_spec = torchaudio.transforms.MelSpectrogram(
     hop_length=512,
     n_mels=64
 )
-dataset = AudioDataset(csv_path='data/filtered_metadata.csv', audio_dir='data', transform=mel_spec)
-train_size  = int(0.8 * len(dataset))
-valid_size = len(dataset) - train_size
-train_set, valid_set = torch.utils.data.random_split(dataset, [train_size, valid_size])
-train_loader = DataLoader(train_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
-valid_loader = DataLoader(valid_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
+dataset = AudioDataset(csv_path=r'data\speaker_audio_samples.csv', audio_dir='data', transform=mel_spec)
+vaild_set = AudioDataset(csv_path=r'data\speaker_dev_audio_samples.csv',audio_dir='data', transform=mel_spec)
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True,collate_fn=get_collate_fn(),num_workers=4)
+valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn(),num_workers=4)
 
 
 best_val_acc = 0.0
