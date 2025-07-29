@@ -32,7 +32,7 @@ valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_
 best_val_acc = 0.0
 
 
-num_epochs = 10
+num_epochs = 15
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
