@@ -23,13 +23,12 @@ class AudioClassifier(nn.Module):
         self.fc2 = nn.Linear(32, num_classes)
 
     def forward(self, x):
-        # x: (batch_size, 1, n_mels, time)
-        x = x.unsqueeze(1)  # => (B, 1, 64, T)
+        x = x.unsqueeze(1)
         x = self.pool1(F.relu(self.bn1(self.conv1(x))))
         x = self.pool2(F.relu(self.bn2(self.conv2(x))))
         x = self.pool3(F.relu(self.bn3(self.conv3(x))))  # shape: (B, 64, 1, 1)
 
-        x = x.view(x.size(0), -1)  # Flatten
+        x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)

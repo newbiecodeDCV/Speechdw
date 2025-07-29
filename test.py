@@ -5,9 +5,9 @@ from model import AudioClassifier
 from torchaudio.transforms import Resample, MelSpectrogram
 import torch.nn.functional as F
 
-# Cấu hình
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
+
 model = AudioClassifier(num_classes=2).to(device)
 model.load_state_dict(torch.load('best_model.pth', map_location=device))
 model.eval()
@@ -21,7 +21,7 @@ mel_transform = MelSpectrogram(
     n_mels=64
 )
 
-# Load speaker info để lấy nhãn
+
 speaker_info_path = "/data/SPEAKERS.TXT"
 speaker_info = {}
 with open(speaker_info_path, "r", encoding="utf-8") as f:
@@ -36,7 +36,7 @@ with open(speaker_info_path, "r", encoding="utf-8") as f:
             label = 0 if sex == 'F' else 1
             speaker_info[speaker_id] = label
 
-# Hàm xử lý audio
+
 def preprocess_audio(path):
     waveform, sample_rate = torchaudio.load(path)
     if sample_rate != target_sample_rate:
@@ -44,16 +44,15 @@ def preprocess_audio(path):
         waveform = resample(waveform)
     mel_spec = mel_transform(waveform)  # (1, 64, T)
 
-    # Pad or crop về kích thước cố định
+
     max_len = 128
     if mel_spec.size(-1) < max_len:
         mel_spec = F.pad(mel_spec, (0, max_len - mel_spec.size(-1)))
     else:
         mel_spec = mel_spec[:, :, :max_len]
-  # (1, 1, 64, T)
     return mel_spec.to(device)
 
-# Duyệt toàn bộ thư mục test
+
 root_dir = "/data/test-clean"
 correct = 0
 total = 0

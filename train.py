@@ -8,18 +8,15 @@ from utils.audio_dataset import AudioDataset,get_collate_fn
 import torchaudio
 
 
-# 1. Khởi tạo thiết bị
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 2. Khởi tạo model
 model = AudioClassifier(num_classes=2).to(device)
 
-# 3. Loss và Optimizer
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001,weight_decay=1e-5)
 
-# 4. Dataloader (giả sử bạn đã có train_loader và val_loader)
-# Ví dụ: train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 mel_spec = torchaudio.transforms.MelSpectrogram(
     sample_rate=16000,
     n_fft=1024,
@@ -34,7 +31,7 @@ valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_
 
 best_val_acc = 0.0
 
-# 5. Vòng lặp huấn luyện
+
 num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
@@ -54,7 +51,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        # Thống kê
+
         running_loss += loss.item() * inputs.size(0)
         _, predicted = torch.max(outputs, 1)
         total += labels.size(0)
