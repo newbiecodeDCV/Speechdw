@@ -28,8 +28,8 @@ mel_spec = torchaudio.transforms.MelSpectrogram(
 )
 dataset = AudioDataset(csv_path=r'/data/train_dataset.csv', audio_dir='/data', transform=mel_spec)
 vaild_set = AudioDataset(csv_path=r'/data/dev_dataset.csv',audio_dir='/data', transform=mel_spec)
-train_loader = DataLoader(dataset, batch_size=32, shuffle=True,collate_fn=get_collate_fn(),num_workers=4)
-valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn(),num_workers=4)
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
+valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
 
 
 best_val_acc = 0.0
