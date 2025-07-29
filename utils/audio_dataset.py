@@ -17,11 +17,8 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, idx):
         file_path = self.data.iloc[idx]['audio_path'].lstrip('/')
-        print(file_path)
         label = self.label_map[self.data.iloc[idx]['sex']]
         file_path = os.path.join(self.audio_dir, file_path)
-        print(self.audio_dir)
-        print(file_path)
         waveform, sample_rate = torchaudio.load(file_path)
         if self.transform:
             waveform = self.transform(waveform)
