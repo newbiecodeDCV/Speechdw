@@ -35,9 +35,9 @@ fi
 
 # Base docker run command with common options
 cmd="${cmd} -it --rm -p 6006:6006 --net=host --ipc=host \
-    -w /e2e-automatic-speech-recognition \
-    -v /data/asr/hoangtm/e2e-automatic-speech-recognition:/e2e-automatic-speech-recognition \
-    -v /data/asr/data/:/data"
+    -w /speech-classification \
+    -v /storage/asr/hiennt/Speechdw:/speech-classification \
+    -v /storage/asr/data/LibriSpeech:/data"
 
 # Initialize environment variables string
 this_env=""
@@ -62,7 +62,7 @@ if [ ! -z "${http_proxy}" ]; then
 fi
 
 # Generate unique container name with GPU info and timestamp
-container_name="hoangtm_espnet_gpu${docker_gpu//,/_}_${this_time}"
+container_name="hiennt_speech_gpu${docker_gpu//,/_}_${this_time}"
 
 # Finalize the docker command
 cmd="${cmd} ${this_env} --name ${container_name} ${image}:${tag}"
