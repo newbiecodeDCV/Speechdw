@@ -17,6 +17,7 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, idx):
         file_path = self.data.iloc[idx]['audio_path']
+        print(file_path)
         label = self.label_map[self.data.iloc[idx]['sex']]
         file_path = os.path.join(self.audio_dir, file_path)
         print(self.audio_dir)
