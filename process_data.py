@@ -1,9 +1,9 @@
 import os
 import csv
 
-speakers_txt = '/storage/asr/data/LibriSpeech/SPEAKERS.TXT'
-root_dir = '/storage/asr/data/LibriSpeech/dev-clean'
-output_csv = '/storage/asr/data/LibriSpeech/dev_dataset.csv'
+speakers_txt = '/data/SPEAKERS.TXT'
+root_dir = '/data/dev-clean'
+output_csv = '/data//dev_dataset.csv'
 
 # 1. Đọc speaker_id và sex từ SPEAKERS.TXT
 speaker_info = {}
