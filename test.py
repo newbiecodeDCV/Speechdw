@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 # Cấu hình
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 model = AudioClassifier(num_classes=2).to(device)
 model.load_state_dict(torch.load('best_model.pth', map_location=device))
 model.eval()
@@ -21,7 +22,7 @@ mel_transform = MelSpectrogram(
 )
 
 # Load speaker info để lấy nhãn
-speaker_info_path = "data/SPEAKERS.TXT"
+speaker_info_path = "/data/SPEAKERS.TXT"
 speaker_info = {}
 with open(speaker_info_path, "r", encoding="utf-8") as f:
     for line in f:
@@ -53,7 +54,7 @@ def preprocess_audio(path):
     return mel_spec.to(device)
 
 # Duyệt toàn bộ thư mục test
-root_dir = "data/test-clean"
+root_dir = "/data/test-clean"
 correct = 0
 total = 0
 
