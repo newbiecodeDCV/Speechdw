@@ -25,14 +25,14 @@ mel_spec = torchaudio.transforms.MelSpectrogram(
 )
 dataset = AudioDataset(csv_path=r'/data/train_dataset.csv', audio_dir='/data', transform=mel_spec)
 vaild_set = AudioDataset(csv_path=r'/data/dev_dataset.csv',audio_dir='/data', transform=mel_spec)
-train_loader = DataLoader(dataset, batch_size=64, shuffle=True,collate_fn=get_collate_fn())
-valid_loader = DataLoader(vaild_set, batch_size=64, shuffle=True,collate_fn=get_collate_fn())
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
+valid_loader = DataLoader(vaild_set, batch_size=32, shuffle=True,collate_fn=get_collate_fn())
 
 
 best_val_acc = 0.0
 
 
-num_epochs = 10
+num_epochs = 15
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
