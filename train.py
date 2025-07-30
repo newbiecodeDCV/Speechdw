@@ -43,6 +43,7 @@ for epoch in range(num_epochs):
         inputs, labels = inputs.to(device), labels.to(device)
 
         # Forward
+        print(inputs.shape)
         outputs = model(inputs)
         loss = criterion(outputs, labels)
 

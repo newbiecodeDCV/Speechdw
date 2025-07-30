@@ -33,7 +33,7 @@ for speaker_id in speaker_info.keys():
                 flac_files.append(os.path.join(root, file))
 
     flac_files.sort()
-    selected_files = flac_files
+    selected_files = flac_files[:30]
 
     for audio_path in selected_files:
         relative_path = audio_path.replace('data/', '', 1)
