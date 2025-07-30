@@ -22,15 +22,26 @@ class AudioDataset(Dataset):
         file_path = os.path.join(self.audio_dir, file_path)
         waveform, sample_rate = torchaudio.load(file_path)
         if self.transform:
-            waveform = self.transform(waveform)
+            features = self.transform(waveform)  # (1, 64, T')
+        else:
+            features = waveform
 
-        return waveform, label  # (Time, Feature)
+        return features, label
 
 
 def get_collate_fn():
     def collate_fn(batch):
-        waveforms, labels = zip(*batch)
-        waveforms = pad_sequence(waveforms, batch_first=True)  # (B, T, F)
-        labels = torch.tensor(labels)
-        return waveforms, labels  # (B, F, T)
+        features, labels = zip(*batch)
+        max_len = max(f.shape[-1] for f in features)
+
+        padded = [
+            torch.nn.functional.pad(f, (0, max_len - f.shape[-1]))  # Pad bên phải (time axis)
+            for f in features
+        ]
+
+        x = torch.stack(padded)  # (B, 1, 64, T')
+        y = torch.tensor(labels)
+
+        return x, y
     return collate_fn
+
