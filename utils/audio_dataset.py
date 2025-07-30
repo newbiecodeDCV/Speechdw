@@ -24,14 +24,13 @@ class AudioDataset(Dataset):
         if self.transform:
             waveform = self.transform(waveform)
 
-        return waveform.squeeze(0).T, label  # (Time, Feature)
-    def __getinfo__(self):
-        return self.label_map
+        return waveform, label  # (Time, Feature)
+
 
 def get_collate_fn():
     def collate_fn(batch):
         waveforms, labels = zip(*batch)
         waveforms = pad_sequence(waveforms, batch_first=True)  # (B, T, F)
         labels = torch.tensor(labels)
-        return waveforms.permute(0, 2, 1), labels  # (B, F, T)
+        return waveforms, labels  # (B, F, T)
     return collate_fn
