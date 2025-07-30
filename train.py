@@ -15,7 +15,7 @@ model = AudioClassifier(num_classes=2).to(device)
 
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001,weight_decay=1e-5)
+optimizer = optim.AdamW(model.parameters(), lr=0.0005,weight_decay=0.01)
 
 mel_spec = torchaudio.transforms.MelSpectrogram(
     sample_rate=16000,
