@@ -11,8 +11,7 @@ class AudioDataset(Dataset):
         self.data = pd.read_csv(csv_path)
         self.audio_dir = audio_dir
         self.transform = transform
-        self.label_map =  {label: idx for idx, label in enumerate(self.data['sex'].unique())}
-        print(self.label_map)
+        self.label_map =  {'F':0,'M':1}
 
     def __len__(self):
         return len(self.data)
