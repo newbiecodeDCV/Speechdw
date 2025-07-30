@@ -78,7 +78,7 @@ class AudioAugmentation:
 
         # Amplitude scaling
         if torch.rand(1) > 0.7:  # 30% chance
-            scale = torch.uniform(0.85, 1.15, (1,))
+            scale = torch.empty(1).uniform_(0.85, 1.15)
             mel_spec = mel_spec * scale
 
         return mel_spec
@@ -449,3 +449,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Training failed with error: {str(e)}")
         raise
+
