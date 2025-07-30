@@ -1,83 +1,174 @@
-import os
 import torch
-import torchaudio
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+import numpy as np
+import os
 from model import AudioClassifier
-from torchaudio.transforms import Resample, MelSpectrogram
-import torch.nn.functional as F
+from utils.audio_dataset import AudioDataset, get_collate_fn
+import torchaudio.transforms as T
+import json
+from datetime import datetime
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = AudioClassifier(num_classes=2).to(device)
-checkpoint = torch.load('checkpoints/best_model.pth', map_location=device)
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
+class Config:
+    # Device
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
-# Mel spectrogram settings
-target_sample_rate = 16000
-mel_transform = MelSpectrogram(
-    sample_rate=target_sample_rate,
-    n_fft=1024,
-    hop_length=512,
-    n_mels=64
-)
+    # Model
+    num_classes = 2
 
-speaker_info_path = "/data/SPEAKERS.TXT"
-speaker_info = {}
-with open(speaker_info_path, "r", encoding="utf-8") as f:
-    for line in f:
-        line = line.strip()
-        if line.startswith(';') or not line:
-            continue
-        parts = line.split('|')
-        if len(parts) >= 2:
-            speaker_id = parts[0].strip()
-            sex = parts[1].strip()
-            label = 0 if sex == 'F' else 1
-            speaker_info[speaker_id] = label
+    # Data
+    test_csv = '/data/test_dataset.csv'
+    audio_dir = '/data'
 
-def preprocess_audio(path):
-    waveform, sample_rate = torchaudio.load(path)
-    if sample_rate != target_sample_rate:
-        resample = Resample(orig_freq=sample_rate, new_freq=target_sample_rate)
-        waveform = resample(waveform)
-    mel_spec = mel_transform(waveform)  # (1, 64, T)
+    # Transforms
+    sample_rate = 16000
+    n_fft = 1024
+    hop_length = 256
+    n_mels = 128
 
-    max_len = 128
-    if mel_spec.size(-1) < max_len:
-        mel_spec = F.pad(mel_spec, (0, max_len - mel_spec.size(-1)))
-    else:
-        mel_spec = mel_spec[:, :, :max_len]
+    # Testing settings
+    batch_size = 128  # Larger batch size for testing
+    save_dir = 'checkpoints'
+    log_dir = 'logs'
+    model_path = os.path.join(save_dir, 'best_model.pth')
 
-    mel_spec = mel_spec.unsqueeze(0)  # (1, 1, 64, 128)
-    return mel_spec.to(device)
 
-root_dir = "/data/test-clean"
-correct = 0
-total = 0
+def get_transforms():
+    mel_transform = T.MelSpectrogram(
+        sample_rate=Config.sample_rate,
+        n_fft=Config.n_fft,
+        hop_length=Config.hop_length,
+        n_mels=Config.n_mels,
+        normalized=True,
+        power=2.0
+    )
 
-for speaker_id in os.listdir(root_dir):
-    speaker_path = os.path.join(root_dir, speaker_id)
-    if not os.path.isdir(speaker_path):
-        continue
-    if speaker_id not in speaker_info:
-        continue
-    label = speaker_info[speaker_id]
+    def transform_fn(waveform):
+        mel_spec = mel_transform(waveform)
+        return mel_spec
 
-    for chapter in os.listdir(speaker_path):
-        chapter_path = os.path.join(speaker_path, chapter)
-        for file in os.listdir(chapter_path):
-            if file.endswith(".flac"):
-                file_path = os.path.join(chapter_path, file)
-                try:
-                    input_tensor = preprocess_audio(file_path)
-                    with torch.no_grad():
-                        output = model(input_tensor)
-                        pred = output.argmax(dim=1).item()
-                    total += 1
-                    if pred == label:
-                        correct += 1
-                except Exception as e:
-                    print(f"Lỗi {file_path}: {e}")
+    return transform_fn
 
-acc = correct / total * 100 if total > 0 else 0
-print(f"\n✅ Test Accuracy: {acc:.2f}% ({correct}/{total})")
+
+# ==============================================================================
+# EVALUATION FUNCTION
+# ==============================================================================
+def evaluate_model():
+    # Create directories
+    os.makedirs(Config.log_dir, exist_ok=True)
+
+    print(f"🚀 Evaluating on device: {Config.device}")
+
+    # Model setup
+    model = AudioClassifier(num_classes=Config.num_classes).to(Config.device)
+
+    # Load best model
+    if not os.path.exists(Config.model_path):
+        raise FileNotFoundError(f"Model checkpoint not found at {Config.model_path}")
+
+    checkpoint = torch.load(Config.model_path, map_location=Config.device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print(
+        f"✅ Loaded best model from epoch {checkpoint['epoch']} with validation accuracy: {checkpoint['val_acc']:.2f}%")
+
+    # Data loader
+    test_transform = get_transforms()
+    test_dataset = AudioDataset(
+        csv_path=Config.test_csv,
+        audio_dir=Config.audio_dir,
+        transform=test_transform
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=Config.batch_size,
+        shuffle=False,
+        collate_fn=get_collate_fn(),
+        num_workers=4,
+        pin_memory=True
+    )
+
+    print(f"📝 Test samples: {len(test_dataset)}")
+
+    # Loss function
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+
+    # Evaluation
+    model.eval()
+    test_loss = 0.0
+    test_correct = 0
+    test_total = 0
+    all_preds = []
+    all_labels = []
+
+    start_time = datetime.now()
+
+    with torch.no_grad():
+        test_pbar = tqdm(test_loader, desc="Testing", leave=False)
+        for inputs, labels in test_pbar:
+            inputs, labels = inputs.to(Config.device, non_blocking=True), labels.to(Config.device, non_blocking=True)
+
+            with torch.cuda.amp.autocast():
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+
+            test_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            test_total += labels.size(0)
+            test_correct += (predicted == labels).sum().item()
+
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+            current_acc = 100. * test_correct / test_total
+            test_pbar.set_postfix({
+                'Loss': f'{loss.item():.4f}',
+                'Acc': f'{current_acc:.2f}%'
+            })
+
+    avg_test_loss = test_loss / len(test_loader)
+    test_acc = 100. * test_correct / test_total
+    test_time = datetime.now() - start_time
+
+    # Print results
+    print(f"\n🎉 Testing completed!")
+    print(f"⏱️ Total testing time: {test_time}")
+    print(f"📊 Test Loss: {avg_test_loss:.4f} | Test Accuracy: {test_acc:.2f}%")
+
+    # Save results
+    results = {
+        'test_loss': avg_test_loss,
+        'test_accuracy': test_acc,
+        'testing_time': str(test_time),
+        'model_checkpoint': Config.model_path,
+        'test_samples': len(test_dataset),
+        'config': {
+            'batch_size': Config.batch_size,
+            'num_classes': Config.num_classes,
+        }
+    }
+
+    with open(os.path.join(Config.log_dir, 'test_results.json'), 'w') as f:
+        json.dump(results, f, indent=2)
+
+    return test_acc, avg_test_loss
+
+
+# ==============================================================================
+# MAIN EXECUTION
+# ==============================================================================
+if __name__ == "__main__":
+    try:
+        test_acc, test_loss = evaluate_model()
+        print(f"✅ Testing script completed successfully!")
+        print(f"🏆 Final test accuracy: {test_acc:.2f}%")
+    except KeyboardInterrupt:
+        print("\n⚠️ Testing interrupted by user")
+    except Exception as e:
+        print(f"❌ Testing failed with error: {str(e)}")
+        raise
