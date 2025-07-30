@@ -5,7 +5,6 @@ from model import AudioClassifier
 from torchaudio.transforms import Resample, MelSpectrogram
 import torch.nn.functional as F
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = AudioClassifier(num_classes=2).to(device)
@@ -21,7 +20,6 @@ mel_transform = MelSpectrogram(
     n_mels=64
 )
 
-
 speaker_info_path = "/data/SPEAKERS.TXT"
 speaker_info = {}
 with open(speaker_info_path, "r", encoding="utf-8") as f:
@@ -36,7 +34,6 @@ with open(speaker_info_path, "r", encoding="utf-8") as f:
             label = 0 if sex == 'F' else 1
             speaker_info[speaker_id] = label
 
-
 def preprocess_audio(path):
     waveform, sample_rate = torchaudio.load(path)
     if sample_rate != target_sample_rate:
@@ -44,14 +41,14 @@ def preprocess_audio(path):
         waveform = resample(waveform)
     mel_spec = mel_transform(waveform)  # (1, 64, T)
 
-
     max_len = 128
     if mel_spec.size(-1) < max_len:
         mel_spec = F.pad(mel_spec, (0, max_len - mel_spec.size(-1)))
     else:
         mel_spec = mel_spec[:, :, :max_len]
-    return mel_spec.to(device)
 
+    mel_spec = mel_spec.unsqueeze(0)  # (1, 1, 64, 128)
+    return mel_spec.to(device)
 
 root_dir = "/data/test-clean"
 correct = 0
@@ -74,8 +71,7 @@ for speaker_id in os.listdir(root_dir):
                     input_tensor = preprocess_audio(file_path)
                     with torch.no_grad():
                         output = model(input_tensor)
-                        prob = torch.softmax(output, dim=1)
-                        pred = torch.argmax(prob, dim=1).item()
+                        pred = output.argmax(dim=1).item()
                     total += 1
                     if pred == label:
                         correct += 1
