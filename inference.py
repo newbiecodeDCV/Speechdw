@@ -11,14 +11,11 @@ from pathlib import Path
 from model import AudioClassifier
 
 
-# ==============================================================================
-# CONFIGURATION
-# ==============================================================================
 class InferenceConfig:
-    # Device
+
     device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
-    # Model
+
     num_classes = 2
     class_names = ['F', 'M  ']
 
@@ -51,8 +48,6 @@ class AudioInference:
         # Load model
         self.model = self.load_model()
 
-        print(f"🚀 Inference initialized on device: {self.device}")
-
     def load_model(self):
         """Load the trained model"""
         if not os.path.exists(self.config.model_path):
@@ -63,15 +58,11 @@ class AudioInference:
         checkpoint = torch.load(self.config.model_path, map_location=self.device)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
-
-        print(f"✅ Loaded model from epoch {checkpoint['epoch']} with validation accuracy: {checkpoint['val_acc']:.2f}%")
-
         return model
 
     def preprocess_audio(self, audio_path):
         """Preprocess audio file for inference"""
         try:
-            # Load audio
             waveform, orig_sample_rate = torchaudio.load(audio_path)
 
             # Resample if necessary
@@ -94,7 +85,7 @@ class AudioInference:
         except Exception as e:
             raise RuntimeError(f"Error preprocessing audio {audio_path}: {str(e)}")
 
-    def predict_single(self, audio_path, return_probabilities=True):
+    def predict_single(self, audio_path):
         """Predict on a single audio file"""
         # Preprocess
         input_tensor = self.preprocess_audio(audio_path)
@@ -116,23 +107,17 @@ class AudioInference:
             'timestamp': datetime.now().isoformat()
         }
 
-        if return_probabilities:
-            result['probabilities'] = {
-                self.config.class_names[i]: probabilities[0][i].item()
-                for i in range(self.config.num_classes)
-            }
 
         return result
 
-    def predict_batch(self, audio_paths, return_probabilities=True):
+    def predict_batch(self, audio_paths):
         """Predict on multiple audio files"""
         results = []
-
         print(f"🔍 Processing {len(audio_paths)} audio files...")
 
         for audio_path in audio_paths:
             try:
-                result = self.predict_single(audio_path, return_probabilities)
+                result = self.predict_single(audio_path)
                 results.append(result)
 
                 print(
@@ -149,7 +134,7 @@ class AudioInference:
 
         return results
 
-    def predict_directory(self, directory_path, audio_extensions=None, return_probabilities=True):
+    def predict_directory(self, directory_path, audio_extensions=None):
         """Predict on all audio files in a directory"""
         if audio_extensions is None:
             audio_extensions = ['.wav', '.mp3', '.flac', '.m4a', '.ogg']
@@ -169,12 +154,10 @@ class AudioInference:
 
         print(f"📁 Found {len(audio_files)} audio files in {directory_path}")
 
-        return self.predict_batch(audio_files, return_probabilities)
+        return self.predict_batch(audio_files)
 
 
-# ==============================================================================
-# UTILITY FUNCTIONS
-# ==============================================================================
+
 def save_results(results, output_path):
     """Save inference results to JSON file"""
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -273,25 +256,6 @@ def main():
         raise
 
 
-# ==============================================================================
-# EXAMPLE USAGE
-# ==============================================================================
+
 if __name__ == "__main__":
-    # Uncomment below for direct usage without command line arguments
-    """
-    # Example 1: Single file inference
-    inference = AudioInference()
-    result = inference.predict_single('path/to/audio.wav')
-    print(json.dumps(result, indent=2))
-
-    # Example 2: Batch inference
-    audio_files = ['audio1.wav', 'audio2.wav', 'audio3.wav']
-    results = inference.predict_batch(audio_files)
-    save_results(results, 'inference_results.json')
-
-    # Example 3: Directory inference
-    results = inference.predict_directory('/path/to/audio/directory')
-    print_summary(results)
-    """
-
     main()
