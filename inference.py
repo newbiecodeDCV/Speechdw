@@ -14,10 +14,8 @@ from model import AudioClassifier
 class InferenceConfig:
 
     device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
-
-
     num_classes = 2
-    class_names = ['F', 'M  ']
+    class_names = ['F', 'M']
 
     # Audio processing
     sample_rate = 16000
@@ -55,7 +53,7 @@ class AudioInference:
 
         model = AudioClassifier(num_classes=self.config.num_classes).to(self.device)
 
-        checkpoint = torch.load(self.config.model_path, map_location=self.device)
+        checkpoint = torch.load(self.config.model_path, map_location=self.device, weights_only=True)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
         return model
