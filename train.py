@@ -24,13 +24,13 @@ class Config:
 
     # Model
     num_classes = 2
-    dropout_rate = 0.15  # Giảm dropout cho 26k samples
+    dropout_rate = 0.15
 
     # Training
     num_epochs = 25
     batch_size = 64
-    learning_rate = 0.001  # Tăng lại vì có nhiều data
-    weight_decay = 0.005  # Giảm weight decay
+    learning_rate = 0.001
+    weight_decay = 0.005
 
     # Data
     train_csv = '/data/train_dataset.csv'
@@ -40,8 +40,8 @@ class Config:
     # Transforms
     sample_rate = 16000
     n_fft = 1024
-    hop_length = 256  # Giảm từ 512 cho resolution tốt hơn
-    n_mels = 128  # Tăng từ 64 cho detail nhiều hơn
+    hop_length = 256  #
+    n_mels = 128
 
     # Training settings
     patience = 8
@@ -49,9 +49,6 @@ class Config:
     log_dir = 'logs'
 
 
-# ==============================================================================
-# ADVANCED DATA AUGMENTATION
-# ==============================================================================
 class AudioAugmentation:
     def __init__(self, sample_rate=16000, training=True):
         self.training = training
@@ -64,20 +61,20 @@ class AudioAugmentation:
             return mel_spec
 
         # Time masking
-        if torch.rand(1) > 0.3:  # 70% chance
+        if torch.rand(1) > 0.3:
             mel_spec = self.time_mask(mel_spec)
 
         # Frequency masking
-        if torch.rand(1) > 0.3:  # 70% chance
+        if torch.rand(1) > 0.3:
             mel_spec = self.freq_mask(mel_spec)
 
         # Add noise
-        if torch.rand(1) > 0.8:  # 20% chance
+        if torch.rand(1) > 0.8:
             noise = torch.randn_like(mel_spec) * 0.01
             mel_spec = mel_spec + noise
 
         # Amplitude scaling
-        if torch.rand(1) > 0.7:  # 30% chance
+        if torch.rand(1) > 0.7:
             scale = torch.empty(1).uniform_(0.85, 1.15)
             mel_spec = mel_spec * scale
 
@@ -127,9 +124,6 @@ class FocalLoss(nn.Module):
             return focal_loss
 
 
-# ==============================================================================
-# TRAINING UTILITIES
-# ==============================================================================
 class EarlyStopping:
     def __init__(self, patience=7, min_delta=0.001, restore_best_weights=True):
         self.patience = patience
@@ -216,22 +210,12 @@ def train_model():
     # Model setup
     model = AudioClassifier(num_classes=Config.num_classes).to(Config.device)
 
-    # Count parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"📈 Total parameters: {total_params:,}")
-    print(f"🎯 Trainable parameters: {trainable_params:,}")
-
-    # Loss function - sử dụng FocalLoss hoặc CrossEntropy với label smoothing
-    # criterion = FocalLoss(alpha=1, gamma=2)  # Cho class imbalance
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  # Cho balanced data
 
-    # Optimizer
     optimizer = optim.AdamW(
         model.parameters(),
         lr=Config.learning_rate,
         weight_decay=Config.weight_decay,
-        betas=(0.9, 0.999)
     )
 
     # Learning rate scheduler
